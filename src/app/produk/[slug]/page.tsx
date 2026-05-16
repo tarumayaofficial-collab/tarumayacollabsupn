@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, use } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '../../../lib/supabase';
 import { notFound } from 'next/navigation';
 import { useCart } from '../../../context/CartContext';
@@ -17,40 +17,41 @@ interface Produk {
   images: string[];
 }
 
+// Di Next.js 14, params langsung berbentuk objek biasa, BUKAN Promise!
 export default function HalamanDetailProduk({ 
   params 
 }: { 
-  params: Promise<{ slug: string }> 
+  params: { slug: string } 
 }) {
-  const resolvedParams = use(params);
   const { addToCart } = useCart();
   
   const [produk, setProduk] = useState<Produk | null>(null);
   const [nomorWA, setNomorWA] = useState<string>('6281234567890');
   const [loading, setLoading] = useState<boolean>(true);
   
-  // SOLUSI UTAMA: Pengaman Deteksi HP & Hydration Error
+  // Pengaman Deteksi HP & Hydration Error
   const [isMobile, setIsMobile] = useState<boolean>(false);
   const [mounted, setMounted] = useState<boolean>(false);
 
   useEffect(() => {
-    setMounted(true); // Tandai bahwa komponen sudah aman terpasang di browser pelanggan
+    setMounted(true); // Browser sudah siap
 
     const handleResize = () => {
       setIsMobile(window.innerWidth <= 768);
     };
     
-    handleResize(); // Aman dijalankan sekarang karena browser sudah terverifikasi 'mounted'
+    handleResize();
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Ambil Data Produk & Nomor WhatsApp Toko secara bersamaan
+  // Ambil Data Produk & WhatsApp Toko
   useEffect(() => {
     async function ambilData() {
       setLoading(true);
+      // Langsung panggil params.slug tanpa lewat fungsi use()
       const [resProduk, resSetting] = await Promise.all([
-        supabase.from('products').select('*').eq('slug', resolvedParams.slug).single(),
+        supabase.from('products').select('*').eq('slug', params.slug).single(),
         supabase.from('toko_settings').select('whatsapp_number').eq('id', 'utama').single()
       ]);
 
@@ -63,9 +64,9 @@ export default function HalamanDetailProduk({
       setLoading(false);
     }
     ambilData();
-  }, [resolvedParams.slug]);
+  }, [params.slug]);
 
-  // Jika proses persiapan browser atau loading database belum selesai, cegah blank putih dengan display memuat
+  // Cegah blank dengan tampilan memuat
   if (!mounted || loading) {
     return (
       <div style={{ background: '#E8DCC8', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'sans-serif', color: '#1F2A44' }}>
@@ -131,18 +132,18 @@ export default function HalamanDetailProduk({
           </Link>
         </div>
 
-        {/* Layout Utama Konten Detail */}
+        {/* Layout Detail */}
         <div style={{ 
           display: 'flex', 
           flexDirection: isMobile ? 'column' : 'row', 
           gap: isMobile ? '20px' : '40px' 
         }}>
           
-          {/* Bagian Kiri: Gambar Produk Fleksibel Kotak (Bentuk Sempurna di HP & Desktop) */}
+          {/* Gambar Produk */}
           <div style={{ 
             flex: '1', 
             width: '100%',
-            aspectRatio: '1/1', // Diganti ke aspect-ratio murni agar foto kulit tidak lonjong/penyok di HP
+            aspectRatio: '1/1',
             backgroundColor: '#fcfaf7', 
             display: 'flex', 
             alignItems: 'center', 
@@ -158,7 +159,7 @@ export default function HalamanDetailProduk({
             )}
           </div>
 
-          {/* Bagian Kanan: Informasi Produk */}
+          {/* Informasi Produk */}
           <div style={{ flex: '1', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
             
             <span style={{ color: '#C6A75E', fontSize: '12px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1.5px' }}>
@@ -187,7 +188,7 @@ export default function HalamanDetailProduk({
               {produk.description || 'Tidak ada deskripsi tertulis untuk produk ini.'}
             </p>
             
-            {/* Tombol Aksi Premium */}
+            {/* Tombol Aksi */}
             <div style={{ display: 'flex', gap: '10px', width: '100%' }}>
               
               <button 
