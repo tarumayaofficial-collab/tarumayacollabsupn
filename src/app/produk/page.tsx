@@ -11,7 +11,7 @@ interface Produk {
   description: string | null;
   price: number;
   stock: number;
-  category: string; // REVISI: Diubah ke string bebas agar selaras dengan input admin
+  category: string;
   images: string[];
 }
 
@@ -20,8 +20,6 @@ export default function HalamanProduk() {
   const [produkDifilter, setProdukDifilter] = useState<Produk[]>([]);
   const [kategoriAktif, setKategoriAktif] = useState<string>('Semua');
   const [loading, setLoading] = useState<boolean>(true);
-  
-  // REVISI: Sekarang daftar kategori disimpan di state agar bisa bertambah secara dinamis
   const [daftarKategori, setDaftarKategori] = useState<string[]>(['Semua']);
 
   useEffect(() => {
@@ -35,70 +33,75 @@ export default function HalamanProduk() {
       if (!error && data) {
         const listProduk = data as Produk[];
         setSemuaProduk(listProduk);
-        setProdukDifilter(listProduk); // Default awal tampilkan semua
+        setProdukDifilter(listProduk);
 
-        // ===================================================================
-        // LOGIKA BARU: EKSTRAKSI KATEGORI OTOMATIS DARI DATA ADMIN
-        // ===================================================================
-        // 1. Ambil semua teks kategori yang ada di dalam produk database
-        // 2. Gunakan Set agar nama kategori yang kembar otomatis dilebur (tidak ganda)
         const kategoriUnik = Array.from(
           new Set(listProduk.map((p) => p.category || 'Umum'))
         );
         
-        // 3. Gabungkan tombol 'Semua' di awal dengan daftar kategori dinamis tadi
         setDaftarKategori(['Semua', ...kategoriUnik]);
-        // ===================================================================
       }
       setLoading(false);
     }
     ambilData();
   }, []);
 
-  // Fungsi saat tombol kategori diklik oleh pelanggan
   const tanganiFilter = (kategori: string) => {
     setKategoriAktif(kategori);
     if (kategori === 'Semua') {
       setProdukDifilter(semuaProduk);
     } else {
-      // Menyaring produk berdasarkan teks kategori yang sama persis
       const hasilSaring = semuaProduk.filter((p) => (p.category || 'Umum') === kategori);
       setProdukDifilter(hasilSaring);
     }
   };
 
   return (
-    <div style={{ background: '#E8DCC8', minHeight: '100vh', padding: '40px 20px', fontFamily: 'sans-serif', color: '#1F2A44' }}>
+    <div style={{ 
+      background: '#E8DCC8', 
+      minHeight: '100vh', 
+      padding: 'clamp(20px, 5vw, 40px) 10px', // Padding mengecil otomatis di layar HP
+      fontFamily: 'sans-serif', 
+      color: '#1F2A44' 
+    }}>
       <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
         
-        {/* Judul Halaman Bergaya Anggun */}
-        <div style={{ textAlign: 'center', marginBottom: '40px' }}>
-          <h1 style={{ fontSize: '32px', margin: '0 0 10px 0', color: '#1F2A44', fontWeight: 'bold', fontFamily: 'serif', letterSpacing: '1px' }}>
+        {/* Judul Halaman Adaptif */}
+        <div style={{ textAlign: 'center', marginBottom: '30px' }}>
+          <h1 style={{ 
+            fontSize: 'clamp(22px, 6vw, 32px)', // Tulisan mengecil di HP, membesar di desktop
+            margin: '0 0 10px 0', 
+            color: '#1F2A44', 
+            fontWeight: 'bold', 
+            fontFamily: 'serif', 
+            letterSpacing: '0.5px' 
+          }}>
             Koleksi Produk Tarumaya
           </h1>
-          <div style={{ width: '50px', height: '2px', background: '#C6A75E', margin: '0 auto 15px auto' }}></div>
-          <p style={{ color: '#555', margin: 0, fontSize: '15px' }}>
+          <div style={{ width: '40px', height: '2px', background: '#C6A75E', margin: '0 auto 12px auto' }}></div>
+          <p style={{ color: '#555', margin: 0, fontSize: 'clamp(12px, 3.5vw, 14px)', padding: '0 10px' }}>
             Silakan pilih kategori produk kerajinan kulit asli yang Anda cari
           </p>
         </div>
 
-        {/* TAMPILAN MENU TOMBOL FILTER (PENGELOMPOKAN PILL LUXURY) */}
+        {/* Tombol Filter Pill (Bisa digeser menyamping jika menu kategori terlalu panjang di HP) */}
         <div style={{ 
           display: 'flex', 
           justifyContent: 'center', 
-          gap: '12px', 
+          gap: '8px', 
           flexWrap: 'wrap', 
-          marginBottom: '40px' 
+          marginBottom: '30px',
+          padding: '0 5px'
         }}>
           {daftarKategori.map((kategori) => (
             <button
               key={kategori}
               onClick={() => tanganiFilter(kategori)}
               style={{
-                padding: '10px 24px',
+                padding: '8px 16px', // Ukuran tombol dibuat lebih pas genggaman tangan di HP
                 borderRadius: '30px',
                 border: kategoriAktif === kategori ? '1px solid #1F2A44' : '1px solid rgba(31, 42, 68, 0.2)',
-                fontSize: '13px',
+                fontSize: '12px',
                 fontWeight: '600',
                 letterSpacing: '0.5px',
                 cursor: 'pointer',
@@ -113,22 +116,23 @@ export default function HalamanProduk() {
           ))}
         </div>
 
-        {/* AREA GRID DAFTAR PRODUK */}
+        {/* AREA GRID DAFTAR PRODUK (Otomatis 2 Kolom di HP) */}
         {loading ? (
-          <div style={{ background: '#FFF', padding: '40px', textAlign: 'center', borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.02)' }}>
-            <p style={{ margin: 0, color: '#666', fontWeight: '500' }}>Memuat katalog produk Tarumaya...</p>
+          <div style={{ background: '#FFF', padding: '40px', textAlign: 'center', borderRadius: '12px' }}>
+            <p style={{ margin: 0, color: '#666', fontWeight: '500', fontSize: '14px' }}>Memuat katalog produk Tarumaya...</p>
           </div>
         ) : produkDifilter.length === 0 ? (
-          <div style={{ background: '#FFF', padding: '50px 20px', textAlign: 'center', borderRadius: '12px', border: '1px solid rgba(198, 167, 94, 0.3)', boxShadow: '0 4px 12px rgba(0,0,0,0.02)' }}>
-            <p style={{ margin: 0, color: '#1F2A44', fontStyle: 'italic', fontSize: '15px' }}>
-              Maaf, produk untuk kategori "{kategoriAktif}" saat ini sedang kosong atau belum di-upload.
+          <div style={{ background: '#FFF', padding: '40px 15px', textAlign: 'center', borderRadius: '12px', border: '1px solid rgba(198, 167, 94, 0.3)' }}>
+            <p style={{ margin: 0, color: '#1F2A44', fontStyle: 'italic', fontSize: '14px' }}>
+              Maaf, produk untuk kategori "{kategoriAktif}" saat ini sedang kosong.
             </p>
           </div>
         ) : (
           <div style={{ 
             display: 'grid', 
-            gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', 
-            gap: '25px' 
+            // Menggunakan ambang batas 145px agar pas membentuk 2 kolom berdampingan di HP
+            gridTemplateColumns: 'repeat(auto-fill, minmax(145px, 1fr))', 
+            gap: '12px' // Jarak antar kartu dirapatkan agar seimbang di layar kecil
           }}>
             {produkDifilter.map((produk) => (
               <div 
@@ -136,17 +140,17 @@ export default function HalamanProduk() {
                 style={{ 
                   background: '#FFF',
                   border: '1px solid rgba(198, 167, 94, 0.25)', 
-                  padding: '16px', 
-                  borderRadius: '12px', 
+                  padding: '10px', // Padding dalam kartu diperkecil sedikit agar konten tidak sesak
+                  borderRadius: '10px', 
                   display: 'flex', 
                   flexDirection: 'column',
-                  boxShadow: '0 4px 15px rgba(0,0,0,0.02)'
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.02)'
                 }}
               >
-                {/* Frame Foto Produk Kotak Estetik */}
+                {/* Frame Foto Produk Kotak Fleksibel */}
                 <div style={{ 
                   width: '100%', 
-                  height: '240px', 
+                  aspectRatio: '1/1', // Memaksa rasio foto selalu kotak proporsional di HP maupun Laptop
                   backgroundColor: '#fcfaf7', 
                   display: 'flex', 
                   alignItems: 'center', 
@@ -158,22 +162,22 @@ export default function HalamanProduk() {
                   {produk.images && produk.images.length > 0 ? (
                     <img src={produk.images[0]} alt={produk.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                   ) : (
-                    <span style={{ color: '#ccc', fontSize: '12px' }}>Tidak ada gambar</span>
+                    <span style={{ color: '#ccc', fontSize: '11px' }}>Tidak ada gambar</span>
                   )}
                 </div>
                 
                 {/* Informasi Kartu Produk */}
-                <span style={{ fontSize: '10px', color: '#C6A75E', marginTop: '16px', fontWeight: 'bold', letterSpacing: '1px', textTransform: 'uppercase' }}>
+                <span style={{ fontSize: '9px', color: '#C6A75E', marginTop: '10px', fontWeight: 'bold', letterSpacing: '0.5px', textTransform: 'uppercase' }}>
                   {produk.category || 'Umum'}
                 </span>
                 
                 <h3 style={{ 
-                  margin: '6px 0 12px 0', 
-                  fontSize: '16px', 
+                  margin: '4px 0 10px 0', 
+                  fontSize: '13px', // Font dikecilkan agar teks nama produk tidak memakan banyak baris
                   fontWeight: '600',
                   color: '#1F2A44',
-                  lineHeight: '1.4',
-                  height: '44px',
+                  lineHeight: '1.3',
+                  height: '34px', // Membatasi tinggi nama produk maksimal 2 baris
                   overflow: 'hidden',
                   display: '-webkit-box',
                   WebkitLineClamp: 2,
@@ -183,10 +187,10 @@ export default function HalamanProduk() {
                 </h3>
                 
                 {/* Label & Nilai Rupiah */}
-                <div style={{ borderTop: '1px solid #f5ede2', paddingTop: '12px', marginTop: 'auto' }}>
-                  <span style={{ display: 'block', fontSize: '11px', color: '#888', textTransform: 'uppercase', marginBottom: '2px' }}>Harga</span>
-                  <p style={{ fontWeight: 'bold', margin: '0 0 16px 0', color: '#C6A75E', fontSize: '18px' }}>
-                    <span style={{ fontSize: '12px', marginRight: '2px' }}>Rp</span>{Number(produk.price).toLocaleString('id-ID')}
+                <div style={{ borderTop: '1px solid #f5ede2', paddingTop: '8px', marginTop: 'auto' }}>
+                  <span style={{ display: 'block', fontSize: '9px', color: '#888', textTransform: 'uppercase', marginBottom: '1px' }}>Harga</span>
+                  <p style={{ fontWeight: 'bold', margin: '0 0 10px 0', color: '#C6A75E', fontSize: '14px' }}>
+                    <span style={{ fontSize: '11px', marginRight: '1px' }}>Rp</span>{Number(produk.price).toLocaleString('id-ID')}
                   </p>
                 </div>
                 
@@ -198,12 +202,11 @@ export default function HalamanProduk() {
                     textAlign: 'center', 
                     background: '#1F2A44', 
                     color: '#E8DCC8', 
-                    padding: '12px', 
+                    padding: '10px 5px', 
                     textDecoration: 'none', 
                     borderRadius: '6px', 
-                    fontSize: '13px', 
+                    fontSize: '11px', 
                     fontWeight: 'bold',
-                    letterSpacing: '0.5px',
                     textTransform: 'uppercase',
                     border: '1px solid #1F2A44',
                     transition: 'all 0.2s ease'

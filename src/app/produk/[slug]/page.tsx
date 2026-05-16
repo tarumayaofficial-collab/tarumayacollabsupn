@@ -22,19 +22,30 @@ export default function HalamanDetailProduk({
 }: { 
   params: Promise<{ slug: string }> 
 }) {
-  // Unpack params sesuai standar Next.js terbaru
   const resolvedParams = use(params);
   
   const { addToCart } = useCart();
   const [produk, setProduk] = useState<Produk | null>(null);
-  const [nomorWA, setNomorWA] = useState<string>('6281234567890'); // State nomor WA
+  const [nomorWA, setNomorWA] = useState<string>('6281234567890');
   const [loading, setLoading] = useState<boolean>(true);
+  
+  // Trik Pendeteksi Layar HP
+  const [isMobile, setIsMobile] = useState<boolean>(false);
 
-  // Ambil data detail produk & nomor WA dari Supabase secara Client-side
+  useEffect(() => {
+    // Jalankan deteksi ukuran layar saat komponen muncul
+    const handleResize = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    
+    handleResize(); // Cek pertama kali
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   useEffect(() => {
     async function ambilData() {
       setLoading(true);
-      
       const [resProduk, resSetting] = await Promise.all([
         supabase.from('products').select('*').eq('slug', resolvedParams.slug).single(),
         supabase.from('toko_settings').select('whatsapp_number').eq('id', 'utama').single()
@@ -46,13 +57,11 @@ export default function HalamanDetailProduk({
       if (!resSetting.error && resSetting.data?.whatsapp_number) {
         setNomorWA(resSetting.data.whatsapp_number);
       }
-      
       setLoading(false);
     }
     ambilData();
   }, [resolvedParams.slug]);
 
-  // Jika masih proses loading data
   if (loading) {
     return (
       <div style={{ background: '#E8DCC8', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'sans-serif', color: '#1F2A44' }}>
@@ -61,18 +70,15 @@ export default function HalamanDetailProduk({
     );
   }
 
-  // Jika loading selesai dan produk memang tidak ditemukan
   if (!produk) {
     notFound();
   }
 
-  // JALUR 1: Fungsi memicu aksi penambahan item ke dalam keranjang belanja global
   const tanganiTambahKeranjang = () => {
     if (produk.stock <= 0) {
       alert('⚠️ Maaf, produk ini sedang habis sehingga tidak bisa dimasukkan ke keranjang.');
       return;
     }
-
     addToCart({
       id: produk.id,
       name: produk.name,
@@ -84,7 +90,6 @@ export default function HalamanDetailProduk({
     });
   };
 
-  // JALUR 2: Fungsi Beli Langsung (Instant Checkout WA)
   const tanganiBeliLangsung = () => {
     if (produk.stock <= 0) {
       alert('⚠️ Maaf, produk ini sedang habis.');
@@ -97,20 +102,50 @@ export default function HalamanDetailProduk({
   };
 
   return (
-    <div style={{ background: '#E8DCC8', minHeight: '100vh', padding: '40px 20px', fontFamily: 'sans-serif', color: '#1F2A44' }}>
-      <div style={{ maxWidth: '900px', margin: '20px auto', background: '#FFF', padding: '30px', borderRadius: '16px', border: '1px solid rgba(198, 167, 94, 0.25)', boxShadow: '0 4px 20px rgba(0,0,0,0.02)' }}>
+    <div style={{ 
+      background: '#E8DCC8', 
+      minHeight: '100vh', 
+      padding: isMobile ? '20px 10px' : '40px 20px', // Padding lebih kecil di HP
+      fontFamily: 'sans-serif', 
+      color: '#1F2A44' 
+    }}>
+      <div style={{ 
+        maxWidth: '900px', 
+        margin: '10px auto', 
+        background: '#FFF', 
+        padding: isMobile ? '20px' : '30px', // Menghemat ruang di HP
+        borderRadius: '16px', 
+        border: '1px solid rgba(198, 167, 94, 0.25)', 
+        boxShadow: '0 4px 20px rgba(0,0,0,0.02)' 
+      }}>
         
-        {/* Tombol Kembali / Navigasi Cepat */}
+        {/* Tombol Kembali */}
         <div style={{ marginBottom: '20px' }}>
           <Link href="/produk" style={{ textDecoration: 'none', color: '#1F2A44', fontSize: '14px', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
-            ⬅ Kembali ke Katalog
+            ⬅️ Kembali ke Katalog
           </Link>
         </div>
 
-        <div style={{ display: 'flex', gap: '40px', flexWrap: 'wrap' }}>
+        {/* Layout Utama: berubah jadi menurun (column) kalau di HP */}
+        <div style={{ 
+          display: 'flex', 
+          flexDirection: isMobile ? 'column' : 'row', 
+          gap: isMobile ? '20px' : '40px' 
+        }}>
           
-          {/* Bagian Kiri: Gambar Produk (Bingkai Estetik) */}
-          <div style={{ flex: '1', minWidth: '300px', height: '420px', backgroundColor: '#fcfaf7', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '12px', overflow: 'hidden', border: '1px solid #f3ece2' }}>
+          {/* Bagian Kiri: Gambar Produk (Tinggi disesuaikan jika layarnya HP) */}
+          <div style={{ 
+            flex: '1', 
+            width: '100%',
+            height: isMobile ? '300px' : '420px', 
+            backgroundColor: '#fcfaf7', 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center', 
+            borderRadius: '12px', 
+            overflow: 'hidden', 
+            border: '1px solid #f3ece2' 
+          }}>
             {produk.images && produk.images.length > 0 ? (
               <img src={produk.images[0]} alt={produk.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
             ) : (
@@ -118,33 +153,28 @@ export default function HalamanDetailProduk({
             )}
           </div>
 
-          {/* Bagian Kanan: Informasi Produk Premium */}
-          <div style={{ flex: '1', minWidth: '300px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+          {/* Bagian Kanan: Informasi Produk */}
+          <div style={{ flex: '1', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
             
-            {/* Label Kategori */}
             <span style={{ color: '#C6A75E', fontSize: '12px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1.5px' }}>
               {produk.category || 'Umum'}
             </span>
             
-            {/* Nama Produk */}
-            <h1 style={{ margin: '10px 0 6px 0', fontSize: '28px', color: '#1F2A44', fontWeight: 'bold', fontFamily: 'serif', lineHeight: '1.3' }}>
+            <h1 style={{ margin: '10px 0 6px 0', fontSize: isMobile ? '22px' : '28px', color: '#1F2A44', fontWeight: 'bold', fontFamily: 'serif', lineHeight: '1.3' }}>
               {produk.name}
             </h1>
             
-            {/* Harga Produk */}
             <h2 style={{ color: '#C6A75E', margin: '0 0 15px 0', fontSize: '24px', fontWeight: 'bold' }}>
               <span style={{ fontSize: '16px', marginRight: '2px', fontWeight: '600' }}>Rp</span>
               {Number(produk.price).toLocaleString('id-ID')}
             </h2>
             
-            {/* Status Stok */}
             <p style={{ fontSize: '13px', color: produk.stock > 0 ? '#137333' : '#c5221f', fontWeight: 'bold', margin: '0 0 20px 0', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
               {produk.stock > 0 ? `🟢 Stok Tersedia: ${produk.stock} pcs` : '🔴 Stok produk ini sedang habis'}
             </p>
             
             <div style={{ borderTop: '1px solid #f5ede2', margin: '10px 0 20px 0' }}></div>
             
-            {/* Deskripsi */}
             <h3 style={{ margin: '0 0 8px 0', fontSize: '15px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px', color: '#1F2A44' }}>
               Deskripsi Produk
             </h3>
@@ -152,23 +182,21 @@ export default function HalamanDetailProduk({
               {produk.description || 'Tidak ada deskripsi tertulis untuk produk ini.'}
             </p>
             
-            {/* TATA LETAK DUA JALUR BARU: Berdampingan Sangat Rapi */}
-            <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginBottom: '15px' }}>
+            {/* Tombol Aksi: Tetap berdampingan tapi mengecil proporsional di HP */}
+            <div style={{ display: 'flex', gap: '10px', width: '100%' }}>
               
-              {/* Tombol Jalur 1: Beli Langsung (Warna Emas Mewah) */}
               <button 
                 onClick={tanganiBeliLangsung}
                 disabled={produk.stock <= 0}
                 style={{ 
                   flex: '1',
-                  minWidth: '140px',
                   textAlign: 'center', 
                   background: produk.stock > 0 ? '#C6A75E' : '#ccc', 
                   color: '#FFF', 
-                  padding: '14px', 
+                  padding: isMobile ? '12px 6px' : '14px', 
                   border: 'none',
                   borderRadius: '8px', 
-                  fontSize: '13px', 
+                  fontSize: isMobile ? '11px' : '13px', // Font dikecilkan sedikit di HP biar pas
                   fontWeight: 'bold', 
                   letterSpacing: '0.5px',
                   textTransform: 'uppercase',
@@ -180,20 +208,18 @@ export default function HalamanDetailProduk({
                 ⚡ Beli Langsung
               </button>
 
-              {/* Tombol Jalur 2: Masukkan Keranjang (Warna Navy Asli Kamu) */}
               <button 
                 onClick={tanganiTambahKeranjang}
                 disabled={produk.stock <= 0}
                 style={{ 
                   flex: '1',
-                  minWidth: '140px',
                   textAlign: 'center', 
                   background: produk.stock > 0 ? '#1F2A44' : '#ccc', 
                   color: produk.stock > 0 ? '#E8DCC8' : '#666', 
-                  padding: '14px', 
+                  padding: isMobile ? '12px 6px' : '14px', 
                   border: 'none',
                   borderRadius: '8px', 
-                  fontSize: '13px', 
+                  fontSize: isMobile ? '11px' : '13px', 
                   fontWeight: 'bold', 
                   letterSpacing: '0.5px',
                   textTransform: 'uppercase',
@@ -202,15 +228,14 @@ export default function HalamanDetailProduk({
                   transition: 'all 0.2s ease'
                 }}
               >
-                Masukan 🛒 
+                🛒 + Keranjang
               </button>
 
             </div>
 
-            {/* Link Pintas Menuju Halaman Keranjang Setelah klik */}
-            <div style={{ textAlign: 'center', marginTop: '5px' }}>
+            <div style={{ textAlign: 'center', marginTop: '15px' }}>
               <Link href="/keranjang" style={{ color: '#C6A75E', fontSize: '13px', fontWeight: '600', textDecoration: 'none' }}>
-                Keranjang Saya 
+                Lihat Isi Keranjang Saya ➡️
               </Link>
             </div>
 
