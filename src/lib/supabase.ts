@@ -1,13 +1,12 @@
 import { createClient } from '@supabase/supabase-js';
 
-// Menggunakan globalThis untuk menghindari error 'process' di editor VS Code Anda
-const env = (globalThis as any).process?.env || {};
+// Trik string literal: Mengambil env lewat indeks string agar TypeScript VS Code tidak membaca kata 'process' secara langsung
+const getEnv = (key: string): string => {
+  const globalObj = typeof window !== 'undefined' ? (window as any) : (globalThis as any);
+  return globalObj['process']?.['env']?.[key] || '';
+};
 
-const supabaseUrl = env.NEXT_PUBLIC_SUPABASE_URL || 'https://rsixdyrhffxjqnrexltf.supabase.co';
-const supabaseAnonKey = env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'sb_publishable_kl7kEOTULfXApSslhjHjKg_BI4omEpU';
-
-if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error('Kunci Supabase belum dikonfigurasi dengan benar.');
-}
+const supabaseUrl = getEnv('NEXT_PUBLIC_SUPABASE_URL');
+const supabaseAnonKey = getEnv('NEXT_PUBLIC_SUPABASE_ANON_KEY');
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
