@@ -23,26 +23,29 @@ export default function HalamanDetailProduk({
   params: Promise<{ slug: string }> 
 }) {
   const resolvedParams = use(params);
-  
   const { addToCart } = useCart();
+  
   const [produk, setProduk] = useState<Produk | null>(null);
   const [nomorWA, setNomorWA] = useState<string>('6281234567890');
   const [loading, setLoading] = useState<boolean>(true);
   
-  // Trik Pendeteksi Layar HP
+  // SOLUSI UTAMA: Pengaman Deteksi HP & Hydration Error
   const [isMobile, setIsMobile] = useState<boolean>(false);
+  const [mounted, setMounted] = useState<boolean>(false);
 
   useEffect(() => {
-    // Jalankan deteksi ukuran layar saat komponen muncul
+    setMounted(true); // Tandai bahwa komponen sudah aman terpasang di browser pelanggan
+
     const handleResize = () => {
       setIsMobile(window.innerWidth <= 768);
     };
     
-    handleResize(); // Cek pertama kali
+    handleResize(); // Aman dijalankan sekarang karena browser sudah terverifikasi 'mounted'
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  // Ambil Data Produk & Nomor WhatsApp Toko secara bersamaan
   useEffect(() => {
     async function ambilData() {
       setLoading(true);
@@ -62,7 +65,8 @@ export default function HalamanDetailProduk({
     ambilData();
   }, [resolvedParams.slug]);
 
-  if (loading) {
+  // Jika proses persiapan browser atau loading database belum selesai, cegah blank putih dengan display memuat
+  if (!mounted || loading) {
     return (
       <div style={{ background: '#E8DCC8', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'sans-serif', color: '#1F2A44' }}>
         <p style={{ fontWeight: '500' }}>Memuat detail produk Tarumaya...</p>
@@ -88,6 +92,7 @@ export default function HalamanDetailProduk({
       image: produk.images && produk.images.length > 0 ? produk.images[0] : 'https://via.placeholder.com/300',
       stock: produk.stock
     });
+    alert('🛒 Produk berhasil ditambahkan ke keranjang belanja Anda!');
   };
 
   const tanganiBeliLangsung = () => {
@@ -105,7 +110,7 @@ export default function HalamanDetailProduk({
     <div style={{ 
       background: '#E8DCC8', 
       minHeight: '100vh', 
-      padding: isMobile ? '20px 10px' : '40px 20px', // Padding lebih kecil di HP
+      padding: isMobile ? '20px 10px' : '40px 20px', 
       fontFamily: 'sans-serif', 
       color: '#1F2A44' 
     }}>
@@ -113,7 +118,7 @@ export default function HalamanDetailProduk({
         maxWidth: '900px', 
         margin: '10px auto', 
         background: '#FFF', 
-        padding: isMobile ? '20px' : '30px', // Menghemat ruang di HP
+        padding: isMobile ? '20px' : '30px', 
         borderRadius: '16px', 
         border: '1px solid rgba(198, 167, 94, 0.25)', 
         boxShadow: '0 4px 20px rgba(0,0,0,0.02)' 
@@ -126,18 +131,18 @@ export default function HalamanDetailProduk({
           </Link>
         </div>
 
-        {/* Layout Utama: berubah jadi menurun (column) kalau di HP */}
+        {/* Layout Utama Konten Detail */}
         <div style={{ 
           display: 'flex', 
           flexDirection: isMobile ? 'column' : 'row', 
           gap: isMobile ? '20px' : '40px' 
         }}>
           
-          {/* Bagian Kiri: Gambar Produk (Tinggi disesuaikan jika layarnya HP) */}
+          {/* Bagian Kiri: Gambar Produk Fleksibel Kotak (Bentuk Sempurna di HP & Desktop) */}
           <div style={{ 
             flex: '1', 
             width: '100%',
-            height: isMobile ? '300px' : '420px', 
+            aspectRatio: '1/1', // Diganti ke aspect-ratio murni agar foto kulit tidak lonjong/penyok di HP
             backgroundColor: '#fcfaf7', 
             display: 'flex', 
             alignItems: 'center', 
@@ -178,11 +183,11 @@ export default function HalamanDetailProduk({
             <h3 style={{ margin: '0 0 8px 0', fontSize: '15px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px', color: '#1F2A44' }}>
               Deskripsi Produk
             </h3>
-            <p style={{ lineHeight: '1.6', color: '#555', margin: '0 0 30px 0', fontSize: '14px' }}>
+            <p style={{ lineHeight: '1.6', color: '#555', margin: '0 0 30px 0', fontSize: '14px', whiteSpace: 'pre-line' }}>
               {produk.description || 'Tidak ada deskripsi tertulis untuk produk ini.'}
             </p>
             
-            {/* Tombol Aksi: Tetap berdampingan tapi mengecil proporsional di HP */}
+            {/* Tombol Aksi Premium */}
             <div style={{ display: 'flex', gap: '10px', width: '100%' }}>
               
               <button 
@@ -196,7 +201,7 @@ export default function HalamanDetailProduk({
                   padding: isMobile ? '12px 6px' : '14px', 
                   border: 'none',
                   borderRadius: '8px', 
-                  fontSize: isMobile ? '11px' : '13px', // Font dikecilkan sedikit di HP biar pas
+                  fontSize: isMobile ? '11px' : '13px', 
                   fontWeight: 'bold', 
                   letterSpacing: '0.5px',
                   textTransform: 'uppercase',
@@ -233,7 +238,7 @@ export default function HalamanDetailProduk({
 
             </div>
 
-            <div style={{ textAlign: 'center', marginTop: '15px' }}>
+            <div style={{ textAlign: 'center', marginTop: '20px' }}>
               <Link href="/keranjang" style={{ color: '#C6A75E', fontSize: '13px', fontWeight: '600', textDecoration: 'none' }}>
                 Lihat Isi Keranjang Saya ➡️
               </Link>
